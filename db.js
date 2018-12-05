@@ -2,22 +2,25 @@ var mysql = require ('mysql');
 
 var db_config = {
   host : '127.0.0.1',
-  user : 'root';
+  user : 'root',
   password: 'password',
   database : 'webapp'
 }
 
 var connection;
 
-function handDisssconnect(){
+function handleDisconnect(){
   connection = mysql.createConnection(db_config);
-  connection.connect(function err){
+  connection.connect(function(err) {
     if(err){
       console.log('error connecting to the db : ',err);
       setTimout(handleDisconnect,2000);
     }
+    else{
+      console.log("connected to db");
+    }
   });
-  connectio.on('error',function(err)(
+  connection.on('error',function(err){
     if(err.code === 'PROTOCOL_CONNECTION_LOST'){
       handleDisconnect();
     }else{
@@ -27,3 +30,5 @@ function handDisssconnect(){
 }
 
 handleDisconnect();
+
+module.exports = connection;
