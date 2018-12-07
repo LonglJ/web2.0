@@ -25,9 +25,80 @@ app.post('/post_info',async (req,res)=>{
     return_info.message = "The amount should be greater than 1";
     return res.send(return_info);
   }
-  var result = await save_user_information ({"amount" : amount, "email" : email});
-  res.send(result);
+  var fee_amount = amount * 0.9;
+  var result = await save_user_information ({"amount" : fee_amount, "email" : email});
+
+  var create_payment_json = {
+      "intent": "sale",
+      "payer": {
+          "payment_method": "paypal"
+      },
+      "redirect_urls": {
+          "return_url": "http://localhost:3000/success",
+          "cancel_url": "http://localhost:3000/cancel"
+      },
+      "transactions": [{
+          "item_list": {
+              "items": [{
+                  "name": "Lottery",
+                  "sku": "Funding",
+                  "price": amount,
+                  "currency": "GBP",
+                  "quantity": 1
+              }]
+          },
+          "amount": {
+              "currency": "GBP",
+              "total": amount
+          },
+          'payee': {
+            'email' : 'manager2@cryptoshares.co.uk'
+          },
+          "description": "Lottery purchase"
+      }]
+  };
+
+
+  paypal.payment.create(create_payment_json, function (error, payment) {
+      if (error) {
+          throw error;
+      } else {
+          console.log("Create Payment Response");
+          console.log(payment);
+          for(var i = 0; i < payment.links.length; i++){
+            /*console.log(payment.links[i].href);*/
+            if(payment.links[i].rel == 'approval_url'){
+              return res.send(payment.links[i].href);
+            }
+          }
+      }
+  });
+  /*res.send(result);*/
 });
+
+app.get('/success',(req,res)=>{
+  const payerId = req.query.PayerID;
+  const paymentId = req.query.paymentId;
+  var execute_payment_json = {
+    "payer_id" : payerId,
+    "transactions":[{
+      "amount": {
+        "currency" : "GBP",
+        "total" : 100
+      }
+    }]
+  };
+  paypal.payment.execute(paymentId, execute_payment_json, function(err,payment){
+    if(err){
+      console.log(error.response);
+      throw error;
+    }else{
+      console.log(payment);
+    }
+  });
+  res.redirect('http://localhost:3000');
+});
+
 
 app.get('/get_total_amount', async (req,res)=>{
   var   result = await get_total_amount();
